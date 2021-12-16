@@ -109,7 +109,7 @@ def HDRrngGenerator(x, entity = 1, varid = [], seed3 = 0, seed4 = 0):
     print(rngs)
     return(rngs)
 
-def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent', boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [], setupInputs = []):
+def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent', boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [], setupInputs = [], probs=np.nan):
     if (seeds != [] and len(seeds) < len(SIPdata.columns)):
         print("RNG list length must be equal to or greater than the number of SIPs.")
     elif (setupInputs != [] and len(setupInputs["bounds"]) != len(SIPdata.columns)):
@@ -193,7 +193,8 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         if dependence == 'dependent':#This section creates the metalogs for each SIP, and has a different version for the indepedent vs dependent case
             for i in range(sip_count):
                 #set fit_method to OLS method to solve faster.
-                mfitted = metalog.fit(np.array(slurp.iloc[:,i]).astype(float), fit_method='OLS', bounds = boundsin[i], boundedness = boundednessin[i], term_limit = termsin[i], term_lower_bound = termsin[i])
+                mfitted = metalog.fit(np.array(slurp.iloc[:,i]).astype(float), fit_method='OLS', bounds = boundsin[i], boundedness = boundednessin[i], term_limit = termsin[i], term_lower_bound = termsin[i],probs=probs)
+                #metalog.plot(mfitted)
                 interp = scipy.interpolate.interp1d(mfitted['M'].iloc[:,1],mfitted['M'].iloc[:,0])
                 interped = interp(np.linspace(min(mfitted['M'].iloc[:,1]),max(mfitted['M'].iloc[:,1]),25)).tolist()
                 a_coef = mfitted['A'].iloc[:,1].to_list()
@@ -238,7 +239,8 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         else:
             for i in range(sip_count):
                 #set fit_method to OLS method to solve faster.
-                mfitted = metalog.fit(np.array(slurp.iloc[:,i]).astype(float), fit_method='OLS', bounds = boundsin[i], boundedness = boundednessin[i], term_limit = termsin[i], term_lower_bound = termsin[i])
+                mfitted = metalog.fit(np.array(slurp.iloc[:,i]).astype(float), fit_method='OLS', bounds = boundsin[i], boundedness = boundednessin[i], term_limit = termsin[i], term_lower_bound = termsin[i],probs=probs)
+                #metalog.plot(mfitted)
                 interp = scipy.interpolate.interp1d(mfitted['M'].iloc[:,1],mfitted['M'].iloc[:,0])
                 interped = interp(np.linspace(min(mfitted['M'].iloc[:,1]),max(mfitted['M'].iloc[:,1]),25)).tolist()
                 a_coef = mfitted['A'].iloc[:,1].to_list()
@@ -424,7 +426,7 @@ def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds
     #Running metalog calculations, adding them to the worksheet
     for i in range(sip_count):
         #set fit_method to OLS method to solve faster.
-        mfitted = metalog.fit(np.array(slurp.iloc[:,i]),fit_method='OLS', bounds = bounds, boundedness = boundedness, term_limit = term_saved, term_lower_bound = term_saved)
+        mfitted = metalog.fit(np.array(slurp.iloc[:,i]),fit_method='OLS', bounds = bounds, boundedness = boundedness, term_limit = term_saved, term_lower_bound = term_saved,probs=probs)
         worksheet.write(0, 4+i, 'Variable_'+str(i+1))
         worksheet.write(1, 4+i, slurp.columns[i])
         worksheet.write(2, 4+i, 'F Inverse')
