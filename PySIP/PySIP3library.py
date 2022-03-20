@@ -243,8 +243,8 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                         'metadata':metadata[slurp.columns[i]]}
                 sips.append(sipdict)
         else:
+            quantile_corr_bool = quantile_corr_matrix is None
             for i in range(sip_count):
-                quantile_corr_bool = quantile_corr_matrix is None
                 #set fit_method to OLS method to solve faster.
                 print("This is slurp data",slurp.iloc[:,i][slurp.iloc[:,i].notnull()])
                 mfitted = metalog.fit(np.array(slurp.iloc[:,i][slurp.iloc[:,i].notnull()]).astype(float), 
