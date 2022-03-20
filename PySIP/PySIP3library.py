@@ -103,13 +103,13 @@ def HDRrngGenerator(x, entity = 1, varid = [], seed3 = 0, seed4 = 0):
                                'seed4': seed4}
                            })
         else:
-            print("Parameters are not in the correct formats (int, list) or aren't in a supportted configuration.")
+            print("Parameters are not in the correct formats (int, list) or aren't in a supported configuration.")
     with open('HDRseeds.json', 'w') as json_file:
         json.dump(rngs, json_file, indent=4)
     print(rngs)
     return(rngs)
 
-def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent', boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [], setupInputs = []):
+def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent', boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [], setupInputs = [], probs=np.nan, quantile_corr_matrix = None):
     if (seeds != [] and len(seeds) < len(SIPdata.columns)):
         print("RNG list length must be equal to or greater than the number of SIPs.")
     elif (setupInputs != [] and len(setupInputs["bounds"]) != len(SIPdata.columns)):
@@ -193,7 +193,14 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         if dependence == 'dependent':#This section creates the metalogs for each SIP, and has a different version for the indepedent vs dependent case
             for i in range(sip_count):
                 #set fit_method to OLS method to solve faster.
-                mfitted = metalog.fit(np.array(slurp.iloc[:,i]).astype(float), fit_method='OLS', bounds = boundsin[i], boundedness = boundednessin[i], term_limit = termsin[i], term_lower_bound = termsin[i])
+                print("This is slurp data",slurp.iloc[:,i][slurp.iloc[:,i].notnull()])
+                mfitted = metalog.fit(np.array(slurp.iloc[:,i][slurp.iloc[:,i].notnull()]).astype(float), 
+                                                  fit_method='OLS', bounds = boundsin[i], 
+                                                  boundedness = boundednessin[i], 
+                                                  term_limit = termsin[i], 
+                                                  term_lower_bound = termsin[i],
+                                                  probs=probs if quantile_corr_matrix is None else slurp.iloc[:,i][slurp.iloc[:,i].notnull()].index.to_list())
+                #metalog.plot(mfitted)
                 interp = scipy.interpolate.interp1d(mfitted['M'].iloc[:,1],mfitted['M'].iloc[:,0])
                 interped = interp(np.linspace(min(mfitted['M'].iloc[:,1]),max(mfitted['M'].iloc[:,1]),25)).tolist()
                 a_coef = mfitted['A'].iloc[:,1].to_list()
@@ -237,8 +244,16 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                 sips.append(sipdict)
         else:
             for i in range(sip_count):
+                quantile_corr_bool = quantile_corr_matrix is None
                 #set fit_method to OLS method to solve faster.
-                mfitted = metalog.fit(np.array(slurp.iloc[:,i]).astype(float), fit_method='OLS', bounds = boundsin[i], boundedness = boundednessin[i], term_limit = termsin[i], term_lower_bound = termsin[i])
+                print("This is slurp data",slurp.iloc[:,i][slurp.iloc[:,i].notnull()])
+                mfitted = metalog.fit(np.array(slurp.iloc[:,i][slurp.iloc[:,i].notnull()]).astype(float), 
+                                                  fit_method='OLS', bounds = boundsin[i], 
+                                                  boundedness = boundednessin[i], 
+                                                  term_limit = termsin[i], 
+                                                  term_lower_bound = termsin[i],
+                                                  probs=probs if quantile_corr_bool else slurp.iloc[:,i][slurp.iloc[:,i].notnull()].index.to_list())
+                #metalog.plot(mfitted)
                 interp = scipy.interpolate.interp1d(mfitted['M'].iloc[:,1],mfitted['M'].iloc[:,0])
                 interped = interp(np.linspace(min(mfitted['M'].iloc[:,1]),max(mfitted['M'].iloc[:,1]),25)).tolist()
                 a_coef = mfitted['A'].iloc[:,1].to_list()
@@ -276,12 +291,18 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                                      'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
                 sips.append(sipdict)          
-        
-        corrdata = pd.DataFrame(np.tril(slurp.corr()))#Creating the lower half of a correlation matrix for the copula section if applicable
+        # Correlation matrix
+        print("Correlation matrix",slurp.corr())
+        #Creating the lower half of a correlation matrix for the copula section if applicable
+        print("quantile_corr_matrix is",quantile_corr_matrix)
+        print("quantile_corr_bool is",quantile_corr_bool)
+        corrdata = pd.DataFrame(np.tril(slurp.corr())) if quantile_corr_bool else quantile_corr_matrix
+        # corrdata = pd.DataFrame(np.tril(slurp.corr()))
+        print(corrdata)
         corrdata.columns = slurp.columns
         corrdata.index = slurp.columns
         stackdf = corrdata.stack()
-        truncstackdf = stackdf[stackdf.iloc[:] != 0]
+        truncstackdf = stackdf[stackdf.iloc[:] != 0] if quantile_corr_bool else stackdf[stackdf.notnull()]
         counter = truncstackdf.count()
     
         matrix = list()
@@ -324,7 +345,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         with open(file_name, 'w') as json_file:#Outputs the file to the current directory
             json.dump(finaldict, json_file, indent=4)
         print("Done! 3.0 SIP Library saved successfully to your current working directory.")
-
+        
 def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [1,1,0,0]):
     slurp = SIPdata
     sip_count = len(slurp.columns)
@@ -424,7 +445,7 @@ def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds
     #Running metalog calculations, adding them to the worksheet
     for i in range(sip_count):
         #set fit_method to OLS method to solve faster.
-        mfitted = metalog.fit(np.array(slurp.iloc[:,i]),fit_method='OLS', bounds = bounds, boundedness = boundedness, term_limit = term_saved, term_lower_bound = term_saved)
+        mfitted = metalog.fit(np.array(slurp.iloc[:,i][slurp.iloc[:,i].notnull()][slurp.iloc[:,i][slurp.iloc[:,i].notnull()].notnull()]),fit_method='OLS', bounds = bounds, boundedness = boundedness, term_limit = term_saved, term_lower_bound = term_saved)
         worksheet.write(0, 4+i, 'Variable_'+str(i+1))
         worksheet.write(1, 4+i, slurp.columns[i])
         worksheet.write(2, 4+i, 'F Inverse')
