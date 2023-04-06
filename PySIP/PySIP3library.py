@@ -190,7 +190,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
             termsin = setupInputs['term_saved']
     
     
-        metadata = slurp_meta.to_dict()
+        metadata = slurp_meta.to_dict() if probs != np.nan else {}
         
         sips=list()#Set up for the SIPs
         if dependence == 'dependent':#This section creates the metalogs for each SIP, and has a different version for the indepedent vs dependent case
