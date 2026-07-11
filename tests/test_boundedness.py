@@ -78,6 +78,27 @@ class BoundednessTestSuite(unittest.TestCase):
         self.assertEqual(0, arguments["lowerBound"])
         self.assertEqual(100, arguments["upperBound"])
 
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
+    def test_Json_raises_for_an_unsupported_boundedness(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+
+        with self.assertRaises(ValueError):
+            PySIP.Json(fixture(), "foo.json", "bar", boundedness='xx')
+        mock_dump.assert_not_called()
+
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
+    def test_Json_raises_for_an_unsupported_boundedness_when_dependent(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+
+        with self.assertRaises(ValueError):
+            PySIP.Json(fixture(), "foo.json", "bar", dependence="dependent",
+                       boundedness='xx')
+        mock_dump.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

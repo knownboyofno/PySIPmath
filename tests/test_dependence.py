@@ -124,6 +124,26 @@ class DependenceTestSuite(unittest.TestCase):
             {'row': 'Products', 'col': 'Products', 'value': 1.0},
         ], matrix)
 
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
+    def test_Json_dependent_passes_per_sip_probs_to_the_fit(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        probs = [
+            [0.1, 0.3, 0.5, 0.7, 0.9],
+            [0.2, 0.4, 0.6, 0.8, 0.95],
+        ]
+        PySIP.Json(fixture(), "foo.json", "bar", dependence="dependent", probs=probs)
+
+        mock_fit.assert_any_call(
+            ANY, fit_method='OLS', bounds=[0, 1], boundedness='u',
+            term_limit=5, term_lower_bound=5, probs=probs[0]
+        )
+        mock_fit.assert_called_with(
+            ANY, fit_method='OLS', bounds=[0, 1], boundedness='u',
+            term_limit=5, term_lower_bound=5, probs=probs[1]
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

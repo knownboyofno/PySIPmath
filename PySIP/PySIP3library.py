@@ -64,6 +64,7 @@ def HDRrngGenerator(x, entity = 1, varid = [], seed3 = 0, seed4 = 0):
         varId = varid
     if isinstance(entity, list) and len(entity) < x:
         logger.error("Entity needs to be a single integer value or a list at least as long as x.")
+        return None
     else:
         if isinstance(entity, int) and (isinstance(varid, int) or varid == []) and isinstance(seed3, int) and isinstance(seed4, int):
             rngs=list()
@@ -105,12 +106,13 @@ def HDRrngGenerator(x, entity = 1, varid = [], seed3 = 0, seed4 = 0):
                            'function':'HDR_2_0',
                            'arguments':{'counter':'PM_Index',
                                'entity': entity[i],
-                               'varId': varId+1,
+                               'varId': varId+i,
                                'seed3': seed3,
                                'seed4': seed4}
                            })
         else:
             logger.error("Parameters are not in the correct formats (int, list) or aren't in a supported configuration.")
+            return None
     with open('HDRseeds.json', 'w') as json_file:
         json.dump(rngs, json_file, indent=4)
     logger.debug("Generated rngs %s", rngs)
@@ -206,7 +208,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                                                   boundedness = boundednessin[i], 
                                                   term_limit = termsin[i], 
                                                   term_lower_bound = termsin[i],
-                                                  probs=probs if quantile_corr_bool else slurp.iloc[:,i][slurp.iloc[:,i].notnull()].index.to_list())
+                                                  probs=(probs[i] if isinstance(probs, list) else probs) if quantile_corr_bool else slurp.iloc[:,i][slurp.iloc[:,i].notnull()].index.to_list())
                 #metalog.plot(mfitted)
                 interp = scipy.interpolate.interp1d(mfitted['M'].iloc[:,1],mfitted['M'].iloc[:,0])
                 interped = interp(np.linspace(min(mfitted['M'].iloc[:,1]),max(mfitted['M'].iloc[:,1]),25)).tolist()
@@ -220,7 +222,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         	     	    'function':'Metalog_1_0',
                         'arguments':{'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
-                if boundednessin[i] == 'sl':
+                elif boundednessin[i] == 'sl':
                     sipdict = {'name':slurp.columns[i],
                         'ref':{'source':'copula',
                                'name':'Gaussian',
@@ -229,7 +231,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                         'arguments':{'lowerBound':boundsin[i][0],
                                      'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
-                if boundednessin[i] == 'su':
+                elif boundednessin[i] == 'su':
                     sipdict = {'name':slurp.columns[i],
                         'ref':{'source':'copula',
                                'name':'Gaussian',
@@ -238,7 +240,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                         'arguments':{'upperBound':boundsin[i][0],
                                      'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
-                if boundednessin[i] == 'b':
+                elif boundednessin[i] == 'b':
                     sipdict = {'name':slurp.columns[i],
                         'ref':{'source':'copula',
                                'name':'Gaussian',
@@ -248,6 +250,8 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                                      'upperBound':boundsin[i][1],
                                      'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
+                else:
+                    raise ValueError(f"Unsupported boundedness '{boundednessin[i]}' for SIP '{slurp.columns[i]}'")
                 sips.append(sipdict)
         else:
             for i in range(sip_count):
@@ -271,7 +275,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         	     	    'function':'Metalog_1_0',
                         'arguments':{'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
-                if boundednessin[i] == 'sl':
+                elif boundednessin[i] == 'sl':
                     sipdict = {'name':slurp.columns[i],
                         'ref':{'source':'rng',
                                'name':'hdr'+str(i+1)},
@@ -279,7 +283,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                         'arguments':{'lowerBound':boundsin[i][0],
                                      'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
-                if boundednessin[i] == 'su':
+                elif boundednessin[i] == 'su':
                     sipdict = {'name':slurp.columns[i],
                         'ref':{'source':'rng',
                                'name':'hdr'+str(i+1)},
@@ -287,7 +291,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                         'arguments':{'upperBound':boundsin[i][0],
                                      'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
-                if boundednessin[i] == 'b':
+                elif boundednessin[i] == 'b':
                     sipdict = {'name':slurp.columns[i],
                         'ref':{'source':'rng',
                                'name':'hdr'+str(i+1)},
@@ -296,7 +300,9 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                                      'upperBound':boundsin[i][1],
                                      'aCoefficients':a_coef},
                         'metadata':metadata[slurp.columns[i]]}
-                sips.append(sipdict)          
+                else:
+                    raise ValueError(f"Unsupported boundedness '{boundednessin[i]}' for SIP '{slurp.columns[i]}'")
+                sips.append(sipdict)
         # Correlation matrix
         logger.debug("Correlation matrix %s", slurp.corr())
         #Creating the lower half of a correlation matrix for the copula section if applicable
@@ -449,6 +455,12 @@ def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds
             worksheet.write(11+sip_count+j, 4+i, slurp_meta.iloc[j,i])
     
     #Running metalog calculations, adding them to the worksheet
+    if boundedness == 'sl':
+        lower_bound, upper_bound = bounds[0], ''
+    elif boundedness == 'su':
+        lower_bound, upper_bound = '', bounds[0]
+    else:
+        lower_bound, upper_bound = bounds[0], bounds[1]
     for i in range(sip_count):
         #set fit_method to OLS method to solve faster.
         mfitted = metalog.fit(np.array(slurp.iloc[:,i][slurp.iloc[:,i].notnull()][slurp.iloc[:,i][slurp.iloc[:,i].notnull()].notnull()]),fit_method=default_fit, bounds = bounds, boundedness = boundedness, term_limit = term_saved, term_lower_bound = term_saved)
@@ -457,8 +469,8 @@ def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds
         worksheet.write(2, 4+i, 'F Inverse')
         worksheet.write(3, 4+i, term_saved)
         worksheet.write(4, 4+i, boundedness)
-        worksheet.write(5, 4+i, bounds[0])
-        worksheet.write(6, 4+i, bounds[1])
+        worksheet.write(5, 4+i, lower_bound)
+        worksheet.write(6, 4+i, upper_bound)
         
         interp = scipy.interpolate.interp1d(mfitted['M'].iloc[:,1],mfitted['M'].iloc[:,0])
         interped = interp(np.linspace(min(mfitted['M'].iloc[:,1]),max(mfitted['M'].iloc[:,1]),25))

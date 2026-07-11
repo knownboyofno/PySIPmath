@@ -101,6 +101,16 @@ class XlsxTestSuite(unittest.TestCase):
 
     @patch("metalog.metalog.fit")
     @patch("xlsxwriter.Workbook")
+    def test_Xlsx_writes_a_single_bound_when_semibounded(self, MockWorkbook, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        Xlsx(fixture(), "foo.xlsx", "bar", boundedness='sl', bounds=[3])
+
+        worksheet = MockWorkbook.return_value.add_worksheet.return_value
+        worksheet.write.assert_any_call(5, 4, 3)   # lower bound
+        worksheet.write.assert_any_call(6, 4, '')  # no upper bound
+
+    @patch("metalog.metalog.fit")
+    @patch("xlsxwriter.Workbook")
     def test_Xlsx_uses_provided_metadata(self, MockWorkbook, mock_fit):
         mock_fit.return_value = fit_fixture()
         metadata = DataFrame(data={
