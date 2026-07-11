@@ -127,6 +127,20 @@ class DependenceTestSuite(unittest.TestCase):
     @patch("metalog.metalog.fit")
     @patch("json.dump")
     @patch("builtins.open")
+    def test_Json_does_not_mutate_the_quantile_correlation_matrix(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        quantiles = fixture()
+        quantiles.index = [0.1, 0.3, 0.5, 0.7, 0.9]
+        quantile_corr = DataFrame([[1.0, None], [0.5, 1.0]])
+        PySIP.Json(quantiles, "foo.json", "bar", dependence="dependent",
+                   quantile_corr_matrix=quantile_corr)
+
+        self.assertListEqual([0, 1], list(quantile_corr.columns))
+        self.assertListEqual([0, 1], list(quantile_corr.index))
+
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
     def test_Json_dependent_passes_per_sip_probs_to_the_fit(self, mock_open, mock_dump, mock_fit):
         mock_fit.return_value = fit_fixture()
         probs = [

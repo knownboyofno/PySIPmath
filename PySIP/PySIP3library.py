@@ -57,7 +57,9 @@ logger = logging.getLogger(__name__)
 
 default_fit = 'OLS'
 
-def HDRrngGenerator(x, entity = 1, varid = [], seed3 = 0, seed4 = 0):
+def HDRrngGenerator(x, entity = 1, varid = None, seed3 = 0, seed4 = 0):
+    if varid is None:
+        varid = []
     if varid == []:
         varId = np.random.randint(1,10000001)
     else:
@@ -118,11 +120,21 @@ def HDRrngGenerator(x, entity = 1, varid = [], seed3 = 0, seed4 = 0):
     logger.debug("Generated rngs %s", rngs)
     return(rngs)
 
-def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent', boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [], setupInputs = [], probs=np.nan, quantile_corr_matrix = None):
+def Json(SIPdata, file_name, author, SIPmetadata = None, dependence = 'independent', boundedness = 'u', bounds = None, term_saved = 5, seeds = None, setupInputs = None, probs=np.nan, quantile_corr_matrix = None):
+    if SIPmetadata is None:
+        SIPmetadata = []
+    if bounds is None:
+        bounds = [0, 1]
+    if seeds is None:
+        seeds = []
+    if setupInputs is None:
+        setupInputs = []
+    if dependence not in ('independent', 'dependent'):
+        raise ValueError(f"dependence must be 'independent' or 'dependent', got '{dependence}'")
     if (seeds != [] and len(seeds) < len(SIPdata.columns)):
-        logger.error("RNG list length must be equal to or greater than the number of SIPs.")
-    elif (setupInputs != [] and len(setupInputs["bounds"]) != len(SIPdata.columns)):
-        logger.error("List length of the input file must be equal to the number of SIPs.")
+        raise ValueError("RNG list length must be equal to or greater than the number of SIPs.")
+    elif setupInputs != [] and any(len(setupInputs[key]) != len(SIPdata.columns) for key in ('boundedness', 'bounds', 'term_saved')):
+        raise ValueError("List length of the input file must be equal to the number of SIPs.")
     else:
         slurp = SIPdata #Assigning some useful variables
         sip_count = len(slurp.columns)
@@ -188,7 +200,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
             termsin = [term_saved] * sip_count
         else:
             boundednessin = setupInputs['boundedness']
-            boundsin = setupInputs['bounds']
+            boundsin = list(setupInputs['bounds'])
             for i in range(sip_count):
                 if boundednessin[i] == 'u':
                     boundsin[i] = [0,1]
@@ -308,7 +320,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         #Creating the lower half of a correlation matrix for the copula section if applicable
         logger.debug("quantile_corr_matrix is %s", quantile_corr_matrix)
         logger.debug("quantile_corr_bool is %s", quantile_corr_bool)
-        corrdata = pd.DataFrame(np.tril(slurp.corr())) if quantile_corr_bool else quantile_corr_matrix
+        corrdata = pd.DataFrame(np.tril(slurp.corr())) if quantile_corr_bool else quantile_corr_matrix.copy()
         # corrdata = pd.DataFrame(np.tril(slurp.corr()))
         logger.debug("%s", corrdata)
         corrdata.columns = slurp.columns
@@ -358,11 +370,15 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
             json.dump(finaldict, json_file, indent=4)
         logger.info("Done! 3.0 SIP Library saved successfully to your current working directory.")
         
-def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [1,1,0,0]):
-    slurp = SIPdata
+def Xlsx(SIPdata, file_name, author, SIPmetadata = None, boundedness = 'u', bounds = None, term_saved = 5, seeds = None):
+    if SIPmetadata is None:
+        SIPmetadata = []
+    if bounds is None:
+        bounds = [0, 1]
+    slurp = SIPdata.copy()
     sip_count = len(slurp.columns)
     slurp.index = np.arange(1, len(slurp)+1)
-    
+
     if isinstance(SIPmetadata, list):
         slurp_meta = pd.DataFrame(slurp.describe())
     else:
@@ -435,19 +451,13 @@ def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds
     #This section adds seeds based on either the default or the input. The default
     #is to randomly pick a starting Var ID and iterate it onwards +1. It adds 
     #+1 to each var ID to make the base seeds independent.
-    if seeds == [1,1,0,0]:
-        rand = np.random.randint(1,10000001)
-        for i in range(sip_count):
-            worksheet.write(7+sip_count, 4+i, seeds[0])
-            worksheet.write(8+sip_count, 4+i, rand+i)
-            worksheet.write(9+sip_count, 4+i, seeds[2])
-            worksheet.write(10+sip_count, 4+i, seeds[3])
-    else:
-        for i in range(sip_count):
-            worksheet.write(7+sip_count, 4+i, seeds[0])
-            worksheet.write(8+sip_count, 4+i, seeds[1]+i)
-            worksheet.write(9+sip_count, 4+i, seeds[2])
-            worksheet.write(10+sip_count, 4+i, seeds[3])
+    if seeds is None:
+        seeds = [1, np.random.randint(1,10000001), 0, 0]
+    for i in range(sip_count):
+        worksheet.write(7+sip_count, 4+i, seeds[0])
+        worksheet.write(8+sip_count, 4+i, seeds[1]+i)
+        worksheet.write(9+sip_count, 4+i, seeds[2])
+        worksheet.write(10+sip_count, 4+i, seeds[3])
     
     #Adding the metadata
     for i in range(sip_count):

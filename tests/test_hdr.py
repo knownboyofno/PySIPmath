@@ -95,12 +95,10 @@ class HDRTestSuite(unittest.TestCase):
             "Accounts": [10.24313638, 13.69812026, 12.62841292, 2.890162231, 7.60269451],
             "Products": [7.00895936, 11.61220758, 5.07099725, 7.542072262, 13.37670202],
         })
-        with self.assertLogs("PySIP.PySIP3library", level="ERROR") as logs:
+        with self.assertRaisesRegex(
+                ValueError,
+                "RNG list length must be equal to or greater than the number of SIPs."):
             PySIP.Json(fixture, "foo.json", "bar", seeds=provided_seeds)
-
-        self.assertIn(
-            "RNG list length must be equal to or greater than the number of SIPs.",
-            logs.output[0])
 
 if __name__ == '__main__':
     unittest.main()

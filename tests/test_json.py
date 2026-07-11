@@ -106,14 +106,62 @@ class BasicTestSuite(unittest.TestCase):
             "Accounts": [10.24313638, 13.69812026, 12.62841292, 2.890162231, 7.60269451],
             "Products": [7.00895936, 11.61220758, 5.07099725, 7.542072262, 13.37670202],
         })
-        with self.assertLogs("PySIP.PySIP3library", level="ERROR") as logs:
+        with self.assertRaisesRegex(
+                ValueError,
+                'List length of the input file must be equal to the number of SIPs.'):
             PySIP.Json(fixture, "foo.json", "bar", setupInputs={
-                "bounds": []
+                "boundedness": ['u', 'u'],
+                "bounds": [],
+                "term_saved": [5, 5]
             })
 
-        self.assertIn(
-            'List length of the input file must be equal to the number of SIPs.',
-            logs.output[0])
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
+    def test_Json_complains_when_terms_are_short(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        fixture = DataFrame(data={
+            "Accounts": [10.24313638, 13.69812026, 12.62841292, 2.890162231, 7.60269451],
+            "Products": [7.00895936, 11.61220758, 5.07099725, 7.542072262, 13.37670202],
+        })
+        with self.assertRaisesRegex(
+                ValueError,
+                'List length of the input file must be equal to the number of SIPs.'):
+            PySIP.Json(fixture, "foo.json", "bar", setupInputs={
+                "boundedness": ['u', 'u'],
+                "bounds": [[0, 1], [0, 1]],
+                "term_saved": [5]
+            })
+
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
+    def test_Json_complains_about_an_unknown_dependence(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        fixture = DataFrame(data={
+            "Accounts": [10.24313638, 13.69812026, 12.62841292, 2.890162231, 7.60269451],
+            "Products": [7.00895936, 11.61220758, 5.07099725, 7.542072262, 13.37670202],
+        })
+        with self.assertRaisesRegex(ValueError, "dependence must be"):
+            PySIP.Json(fixture, "foo.json", "bar", dependence="dependant")
+
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
+    def test_Json_does_not_mutate_setupInputs(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        fixture = DataFrame(data={
+            "Accounts": [10.24313638, 13.69812026, 12.62841292, 2.890162231, 7.60269451],
+            "Products": [7.00895936, 11.61220758, 5.07099725, 7.542072262, 13.37670202],
+        })
+        setup_inputs = {
+            "boundedness": ['u', 'u'],
+            "bounds": [[5, 6], [7, 8]],
+            "term_saved": [5, 5]
+        }
+        PySIP.Json(fixture, "foo.json", "bar", setupInputs=setup_inputs)
+
+        self.assertListEqual([[5, 6], [7, 8]], setup_inputs["bounds"])
 
 if __name__ == '__main__':
     unittest.main()

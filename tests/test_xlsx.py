@@ -101,6 +101,25 @@ class XlsxTestSuite(unittest.TestCase):
 
     @patch("metalog.metalog.fit")
     @patch("xlsxwriter.Workbook")
+    def test_Xlsx_respects_literal_seeds(self, MockWorkbook, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        Xlsx(fixture(), "foo.xlsx", "bar", seeds=[1, 1, 0, 0])
+
+        worksheet = MockWorkbook.return_value.add_worksheet.return_value
+        worksheet.write.assert_any_call(10, 4, 1)  # var id used as given
+        worksheet.write.assert_any_call(10, 5, 2)
+
+    @patch("metalog.metalog.fit")
+    @patch("xlsxwriter.Workbook")
+    def test_Xlsx_does_not_mutate_the_input_dataframe(self, MockWorkbook, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        data = fixture()
+        Xlsx(data, "foo.xlsx", "bar")
+
+        self.assertListEqual([0, 1, 2, 3, 4], list(data.index))
+
+    @patch("metalog.metalog.fit")
+    @patch("xlsxwriter.Workbook")
     def test_Xlsx_writes_a_single_bound_when_semibounded(self, MockWorkbook, mock_fit):
         mock_fit.return_value = fit_fixture()
         Xlsx(fixture(), "foo.xlsx", "bar", boundedness='sl', bounds=[3])
