@@ -161,7 +161,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         else:
             oui ={'rng':rng}
         
-        if SIPmetadata == []: #If the describe function is being used for default metadata, then the names are being changed for the visual layer
+        if isinstance(SIPmetadata, list): #If the describe function is being used for default metadata, then the names are being changed for the visual layer
             slurp_meta = pd.DataFrame(slurp.describe())
             renames = slurp_meta.index.values
             renames[4] = 'P25'
@@ -310,7 +310,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         for i in range(counter): #Gets our correlations in the correct format
             matrix.append({'row':truncstackdf.index.get_level_values(0)[i],
                   'col':truncstackdf.index.get_level_values(1)[i],
-                  'value':truncstackdf[i]})
+                  'value':truncstackdf.iloc[i]})
             
         
         value = {'columns' : slurp.columns.to_list(),
@@ -350,7 +350,7 @@ def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds
     sip_count = len(slurp.columns)
     slurp.index = np.arange(1, len(slurp)+1)
     
-    if SIPmetadata == []:
+    if isinstance(SIPmetadata, list):
         slurp_meta = pd.DataFrame(slurp.describe())
     else:
         slurp_meta = SIPmetadata
