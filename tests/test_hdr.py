@@ -43,7 +43,8 @@ class HDRTestSuite(unittest.TestCase):
         PySIP.Json(fixture, "foo.json", "bar")
 
         mock_fit.assert_called_with(
-            ANY, bounds=[0, 1], boundedness='u', term_limit=5, term_lower_bound=5
+            ANY, fit_method='OLS', bounds=[0, 1], boundedness='u',
+            term_limit=5, term_lower_bound=5, probs=ANY
         )
 
 

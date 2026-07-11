@@ -69,7 +69,8 @@ class BasicTestSuite(unittest.TestCase):
 
         mock_fit.assert_called_with(
             ANY,
-            bounds=[0, 1], boundedness='u', term_limit=2, term_lower_bound=2
+            fit_method='OLS', bounds=[0, 1], boundedness='u',
+            term_limit=2, term_lower_bound=2, probs=ANY
         )
 
     @patch("builtins.print")

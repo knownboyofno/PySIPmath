@@ -71,6 +71,28 @@ class MetadataTestSuite(unittest.TestCase):
             0.00010381561364926245
         ], mock_dump.call_args[0][0]["sips"][0]["metadata"]["density"])
 
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
+    def test_Json_uses_provided_metadata(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        fixture = DataFrame(data={
+            "Accounts": [10.24313638, 13.69812026, 12.62841292, 2.890162231, 7.60269451],
+            "Products": [7.00895936, 11.61220758, 5.07099725, 7.542072262, 13.37670202],
+        })
+        metadata = DataFrame(data={
+            "Accounts": {'source': 1.0},
+            "Products": {'source': 2.0},
+        })
+        PySIP.Json(fixture, "foo.json", "bar", SIPmetadata=metadata)
+
+        self.assertDictEqual({
+            'source': 1.0,
+            'density': ANY,
+        }, mock_dump.call_args[0][0]["sips"][0]["metadata"])
+        self.assertEqual(
+            2.0, mock_dump.call_args[0][0]["sips"][1]["metadata"]["source"])
+
 
 if __name__ == '__main__':
     unittest.main()
