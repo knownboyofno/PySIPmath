@@ -42,14 +42,18 @@ Parameters
 metalog implementation, and Shaun Doheney for the original SIPlibrary work, from
 which this is largely based.
 """
-import scipy
-import pandas as pd
-import numpy as np
-from metalog import metalog
 import json
+import logging
 from datetime import date
-import xlsxwriter
 
+import numpy as np
+import pandas as pd
+import scipy
+import xlsxwriter
+from metalog import metalog
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 default_fit = 'OLS'
 
@@ -59,7 +63,7 @@ def HDRrngGenerator(x, entity = 1, varid = [], seed3 = 0, seed4 = 0):
     else:
         varId = varid
     if isinstance(entity, list) and len(entity) < x:
-        print("Entity needs to be a single integer value or a list at least as long as x.")
+        logger.error("Entity needs to be a single integer value or a list at least as long as x.")
     else:
         if isinstance(entity, int) and (isinstance(varid, int) or varid == []) and isinstance(seed3, int) and isinstance(seed4, int):
             rngs=list()
@@ -106,17 +110,17 @@ def HDRrngGenerator(x, entity = 1, varid = [], seed3 = 0, seed4 = 0):
                                'seed4': seed4}
                            })
         else:
-            print("Parameters are not in the correct formats (int, list) or aren't in a supported configuration.")
+            logger.error("Parameters are not in the correct formats (int, list) or aren't in a supported configuration.")
     with open('HDRseeds.json', 'w') as json_file:
         json.dump(rngs, json_file, indent=4)
-    print(rngs)
+    logger.debug("Generated rngs %s", rngs)
     return(rngs)
 
 def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent', boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [], setupInputs = [], probs=np.nan, quantile_corr_matrix = None):
     if (seeds != [] and len(seeds) < len(SIPdata.columns)):
-        print("RNG list length must be equal to or greater than the number of SIPs.")
+        logger.error("RNG list length must be equal to or greater than the number of SIPs.")
     elif (setupInputs != [] and len(setupInputs["bounds"]) != len(SIPdata.columns)):
-        print("List length of the input file must be equal to the number of SIPs.")
+        logger.error("List length of the input file must be equal to the number of SIPs.")
     else:
         slurp = SIPdata #Assigning some useful variables
         sip_count = len(slurp.columns)
@@ -196,7 +200,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
             for i in range(sip_count):
             
                 #set fit_method to OLS method to solve faster.
-                print("This is slurp data",slurp.iloc[:,i][slurp.iloc[:,i].notnull()])
+                logger.debug("This is slurp data %s", slurp.iloc[:,i][slurp.iloc[:,i].notnull()])
                 mfitted = metalog.fit(np.array(slurp.iloc[:,i][slurp.iloc[:,i].notnull()]).astype(float), 
                                                   fit_method=default_fit, bounds = boundsin[i],
                                                   boundedness = boundednessin[i], 
@@ -248,7 +252,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         else:
             for i in range(sip_count):
                 #set fit_method to OLS method to solve faster.
-                print("This is slurp data",slurp.iloc[:,i][slurp.iloc[:,i].notnull()])
+                logger.debug("This is slurp data %s", slurp.iloc[:,i][slurp.iloc[:,i].notnull()])
                 mfitted = metalog.fit(np.array(slurp.iloc[:,i][slurp.iloc[:,i].notnull()]).astype(float),
                                                   fit_method=default_fit, bounds = boundsin[i],
                                                   boundedness = boundednessin[i],
@@ -294,13 +298,13 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
                         'metadata':metadata[slurp.columns[i]]}
                 sips.append(sipdict)          
         # Correlation matrix
-        print("Correlation matrix",slurp.corr())
+        logger.debug("Correlation matrix %s", slurp.corr())
         #Creating the lower half of a correlation matrix for the copula section if applicable
-        print("quantile_corr_matrix is",quantile_corr_matrix)
-        print("quantile_corr_bool is",quantile_corr_bool)
+        logger.debug("quantile_corr_matrix is %s", quantile_corr_matrix)
+        logger.debug("quantile_corr_bool is %s", quantile_corr_bool)
         corrdata = pd.DataFrame(np.tril(slurp.corr())) if quantile_corr_bool else quantile_corr_matrix
         # corrdata = pd.DataFrame(np.tril(slurp.corr()))
-        print(corrdata)
+        logger.debug("%s", corrdata)
         corrdata.columns = slurp.columns
         corrdata.index = slurp.columns
         stackdf = corrdata.stack()
@@ -346,7 +350,7 @@ def Json(SIPdata, file_name, author, SIPmetadata = [], dependence = 'independent
         
         with open(file_name, 'w') as json_file:#Outputs the file to the current directory
             json.dump(finaldict, json_file, indent=4)
-        print("Done! 3.0 SIP Library saved successfully to your current working directory.")
+        logger.info("Done! 3.0 SIP Library saved successfully to your current working directory.")
         
 def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds = [0, 1], term_saved = 5, seeds = [1,1,0,0]):
     slurp = SIPdata
@@ -466,4 +470,4 @@ def Xlsx(SIPdata, file_name, author, SIPmetadata = [], boundedness = 'u', bounds
             worksheet.write(36+sip_count+metalen+j, 4+i, mfitted['A'].iat[j,1])
         
     workbook.close()
-    print("Done! 3.0 SIP Library saved successfully to your current working directory.")
+    logger.info("Done! 3.0 SIP Library saved successfully to your current working directory.")

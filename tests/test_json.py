@@ -97,21 +97,23 @@ class BasicTestSuite(unittest.TestCase):
             term_limit=5, term_lower_bound=5, probs=probs[1]
         )
 
-    @patch("builtins.print")
     @patch("metalog.metalog.fit")
     @patch("json.dump")
     @patch("builtins.open")
-    def test_Json_complains_when_bounds_are_short(self, mock_open, mock_dump, mock_fit, mock_print):
+    def test_Json_complains_when_bounds_are_short(self, mock_open, mock_dump, mock_fit):
         mock_fit.return_value = fit_fixture()
         fixture = DataFrame(data={
             "Accounts": [10.24313638, 13.69812026, 12.62841292, 2.890162231, 7.60269451],
             "Products": [7.00895936, 11.61220758, 5.07099725, 7.542072262, 13.37670202],
         })
-        PySIP.Json(fixture, "foo.json", "bar", setupInputs={
-            "bounds": []
-        })
+        with self.assertLogs("PySIP.PySIP3library", level="ERROR") as logs:
+            PySIP.Json(fixture, "foo.json", "bar", setupInputs={
+                "bounds": []
+            })
 
-        print.assert_called_with('List length of the input file must be equal to the number of SIPs.')
+        self.assertIn(
+            'List length of the input file must be equal to the number of SIPs.',
+            logs.output[0])
 
 if __name__ == '__main__':
     unittest.main()
