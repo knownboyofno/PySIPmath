@@ -65,8 +65,7 @@ def HDRrngGenerator(x, entity = 1, varid = None, seed3 = 0, seed4 = 0):
     else:
         varId = varid
     if isinstance(entity, list) and len(entity) < x:
-        logger.error("Entity needs to be a single integer value or a list at least as long as x.")
-        return None
+        raise ValueError("Entity needs to be a single integer value or a list at least as long as x.")
     else:
         if isinstance(entity, int) and (isinstance(varid, int) or varid == []) and isinstance(seed3, int) and isinstance(seed4, int):
             rngs=list()
@@ -113,8 +112,7 @@ def HDRrngGenerator(x, entity = 1, varid = None, seed3 = 0, seed4 = 0):
                                'seed4': seed4}
                            })
         else:
-            logger.error("Parameters are not in the correct formats (int, list) or aren't in a supported configuration.")
-            return None
+            raise ValueError("Parameters are not in the correct formats (int, list) or aren't in a supported configuration.")
     with open('HDRseeds.json', 'w') as json_file:
         json.dump(rngs, json_file, indent=4)
     logger.debug("Generated rngs %s", rngs)

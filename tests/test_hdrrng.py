@@ -103,27 +103,23 @@ class HDRrngGeneratorTestSuite(unittest.TestCase):
 
     @patch("json.dump")
     @patch("builtins.open")
-    def test_returns_none_when_entity_list_is_too_short(self, mock_open, mock_dump):
-        with self.assertLogs("PySIP.PySIP3library", level="ERROR") as logs:
-            rngs = HDRrngGenerator(3, entity=[1, 2])
+    def test_raises_when_entity_list_is_too_short(self, mock_open, mock_dump):
+        with self.assertRaisesRegex(
+                ValueError,
+                "Entity needs to be a single integer value or a list at least as long as x."):
+            HDRrngGenerator(3, entity=[1, 2])
 
-        self.assertIsNone(rngs)
         mock_dump.assert_not_called()
-        self.assertIn(
-            "Entity needs to be a single integer value or a list at least as long as x.",
-            logs.output[0])
 
     @patch("json.dump")
     @patch("builtins.open")
-    def test_returns_none_for_an_unsupported_configuration(self, mock_open, mock_dump):
-        with self.assertLogs("PySIP.PySIP3library", level="ERROR") as logs:
-            rngs = HDRrngGenerator(2, entity=1, varid=[100, 200])
+    def test_raises_for_an_unsupported_configuration(self, mock_open, mock_dump):
+        with self.assertRaisesRegex(
+                ValueError,
+                "Parameters are not in the correct formats"):
+            HDRrngGenerator(2, entity=1, varid=[100, 200])
 
-        self.assertIsNone(rngs)
         mock_dump.assert_not_called()
-        self.assertIn(
-            "Parameters are not in the correct formats (int, list) or aren't in a supported configuration.",
-            logs.output[0])
 
     @patch("json.dump")
     @patch("builtins.open")
