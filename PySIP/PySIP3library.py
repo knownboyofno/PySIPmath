@@ -50,6 +50,10 @@ import numpy as np
 import pandas as pd
 import scipy
 import xlsxwriter
+
+# metalog on PyPI still references np.float_, which NumPy 2.0 removed
+if not hasattr(np, 'float_'):
+    np.float_ = np.float64
 from metalog import metalog
 
 logging.basicConfig(level=logging.INFO)
