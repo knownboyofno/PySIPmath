@@ -73,6 +73,30 @@ class BasicTestSuite(unittest.TestCase):
             term_limit=2, term_lower_bound=2, probs=ANY
         )
 
+    @patch("metalog.metalog.fit")
+    @patch("json.dump")
+    @patch("builtins.open")
+    def test_Json_passes_per_sip_probs_to_the_fit(self, mock_open, mock_dump, mock_fit):
+        mock_fit.return_value = fit_fixture()
+        fixture = DataFrame(data={
+            "Accounts": [10.24313638, 13.69812026, 12.62841292, 2.890162231, 7.60269451],
+            "Products": [7.00895936, 11.61220758, 5.07099725, 7.542072262, 13.37670202],
+        })
+        probs = [
+            [0.1, 0.3, 0.5, 0.7, 0.9],
+            [0.2, 0.4, 0.6, 0.8, 0.95],
+        ]
+        PySIP.Json(fixture, "foo.json", "bar", probs=probs)
+
+        mock_fit.assert_any_call(
+            ANY, fit_method='OLS', bounds=[0, 1], boundedness='u',
+            term_limit=5, term_lower_bound=5, probs=probs[0]
+        )
+        mock_fit.assert_called_with(
+            ANY, fit_method='OLS', bounds=[0, 1], boundedness='u',
+            term_limit=5, term_lower_bound=5, probs=probs[1]
+        )
+
     @patch("builtins.print")
     @patch("metalog.metalog.fit")
     @patch("json.dump")
